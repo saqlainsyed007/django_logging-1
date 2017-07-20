@@ -10,6 +10,11 @@ class SocketLogstashHandler(SocketHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        try:
+            self.sock = self.makeSocket()
+            print("Logstash Connected")
+        except Exception:
+            print("Logstash Connection Failed")
 
     def emit(self, record):
         record.msg = self.format(record) + '\n'
@@ -18,18 +23,16 @@ class SocketLogstashHandler(SocketHandler):
             getattr(self, 'tags', []),
             getattr(self, 'fqdn', False)
         )
-
         message = logstash_formatter.format(record)
         message_string = message.decode()
         message_dict = json.loads(message_string)
         message_dict['type'] = 'django_log'
         message = json.dumps(message_dict) + '\n'
-        if self.sock is None:
+        if self.sock is not None:
             try:
-                self.sock = self.makeSocket()
-            except Exception as e:
+                x = self.sock.send(message.encode())
+                print(x)
+            except BaseException as e:
                 print(e)
-        try:
-            self.sock.send(message.encode())
-        except Exception as e:
-            print(e)
+        else:
+            print("Logstash Connection Failed")
